@@ -1,11 +1,11 @@
-package randomForest;
+package algorithms;
 
-import java.util.*;
-import java.math.*;
-import java.io.*;
-import java.lang.*;
 
-public class calculation {
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+public class Calculation {
 	
 	//method to calculate total entropy of the instances present in "input[][]" array of length "count"
 	public double totalEntropy(String[][] input,int count)
@@ -38,8 +38,12 @@ public class calculation {
 	public String[][] dealCont(String[][] data,int[] continuous,String[][] test, int lOfTest)
 	{
 		//variables to store threshold values
-		int c1,c2,c3,c4;
-		int j,m;
+		int c1;
+		int c2;
+		int c3;
+		int c4;
+		int j;
+		int m;
 		
 		for( j=0;j<continuous.length;j++){
 			int k = continuous[j];
@@ -115,7 +119,7 @@ public class calculation {
 	{
 		int b=0;
 		//Using a set to collect all the column indexes with missing entries
-		Set<Integer> set = new HashSet<Integer>();
+		Set<Integer> set = new HashSet<>();
 		for(int i=0;i<32561;i++)
 		{
 			for(int j=0;j<15;j++)
@@ -158,7 +162,8 @@ public class calculation {
 			//Calculating the trait with the maximum number of "1" and "0" and its index
 			int maxYes = 0;
 			int maxNo = 0;
-			int ansYes=0,ansNo=0;
+			int ansYes=0;
+			int ansNo=0;
 			for(int l=0;l<traits;l++)
 			{
 				if(yes[l]>maxYes)
@@ -242,9 +247,13 @@ public class calculation {
 			for(int j=0;j<attributes[i].length;j++)
 			{
 				if(yes[j]==0||no[j]==0)
-				{	}
-				else
-				temp = temp + ((double)total[j]/length)*((((double)yes[j]/(double)total[j])*(Math.log((double)yes[j]/(double)total[j]))/(Math.log(2))) + ((double)no[j]/(double)total[j])*((Math.log((double)no[j]/(double)total[j]))/(Math.log(2)))) ;
+				{
+				    //do nothing
+                }
+				else {
+					temp = temp + ((double)total[j]/length)*((((double)yes[j]/(double)total[j])*(Math.log((double)yes[j]/(double)total[j]))/(Math.log(2))) + ((double)no[j]/(double)total[j])*((Math.log((double)no[j]/(double)total[j]))/(Math.log(2)))) ;
+				}
+
 			}
 			entropy[i] = -temp;
 		}
@@ -265,14 +274,12 @@ public class calculation {
 				maxi = i;
 			}
 		}
-		if(flag==0)
-		return maxi;
-		else
-		return max;
+
+		return flag==0 ? maxi : max;
 	}
 	
 	//method to traverse the decision tree and predict an output 
-	public String test(Node node,String[] test,String[][] attributes){
+	public String test(Node node, String[] test, String[][] attributes){
 		String out = "";
 		if(node.type.equals("leaf_node"))
 		{
@@ -298,10 +305,9 @@ public class calculation {
 	public double totalWeight(double[] weightData)
 	{
 		double a=0;
-		for(int i=0;i<weightData.length;i++)
-		{
-			a = a+weightData[i];
-		}
+        for (double aWeightData : weightData) {
+            a = a + aWeightData;
+        }
 		return a;
 	}
 	

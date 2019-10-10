@@ -1,12 +1,12 @@
+package algorithms;
 
-package randomForest;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.math.*;
 import java.io.*;
-import java.lang.*;
 
-public class Main {
+@Slf4j
+public class MainForest {
 	
 
 	public static void main(String[] args) throws Exception {
@@ -32,13 +32,10 @@ public class Main {
 		attributes[13] = new String[]{"United-States","Cambodia","England","Puerto-Rico","Canada", "Germany", "Outlying-US(Guam-USVI-etc)", "India", "Japan", "Greece", "South", "China", "Cuba", "Iran", "Honduras", "Philippines", "Italy", "Poland", "Jamaica", "Vietnam", "Mexico","Portugal", "Ireland", "France","Dominican-Republic", "Laos", "Ecuador", "Taiwan", "Haiti", "Columbia", "Hungary", "Guatemala", "Nicaragua", "Scotland", "Thailand", "Yugoslavia", "El-Salvador", "Trinadad&Tobago", "Peru", "Hong", "Holand-Netherlands"};
 		attributes[14] = new String[]{"0", "1"};
 		
-		
 		//creating reader objects to extract training data and putting it into 2D array "data".
 		BufferedReader in = new BufferedReader(new FileReader("C:\\Users\\Ayushi\\Desktop\\ML\\MLassignment1\\adult.data.txt"));
 		String[][] data = new String[32561][15];
-		String line = new String();
-		
-		
+		String line;
 		int i=0;
 		while((line=in.readLine())!=null)
 		{
@@ -57,8 +54,6 @@ public class Main {
 		//creating reader objects to extract testing data and putting it into 2D array "test".
 		BufferedReader in1 = new BufferedReader(new FileReader("C:\\Users\\Ayushi\\Desktop\\ML\\MLassignment1\\adult.test.txt"));
 		String[][] test = new String[16281][15];
-			
-		
 		i=0;
 		while((line=in1.readLine())!=null)
 		{
@@ -74,9 +69,7 @@ public class Main {
 			i++;
 			
 		}
-		
-		
-		//storing column indexes which have continuous values.
+		//storing column indexes which have continuous values.		
 		int[] continuous = new int[6];
 		continuous[0] = 0;
 		continuous[1] = 2;
@@ -85,9 +78,8 @@ public class Main {
 		continuous[4] = 11;
 		continuous[5] = 12;
 		
-		
-		//creating object of "calculation" class.	
-		calculation calc = new calculation();
+		//creating object of "algorithms.Calculation" class.
+		Calculation calc = new Calculation();
 		
 		//converting all continuous valued attributes to discrete valued attributes in both "test" and "data"
 		data = calc.dealCont(data, continuous,test,16281);
@@ -95,60 +87,113 @@ public class Main {
 		//replacing all missing entries with relevant data in both "test" and "data"
 		data = calc.dealMissing(data,32561,attributes,test,16281);
 		
-		//starting of constructing ID3
-		long startTime = System.currentTimeMillis();
-		
-		//calculating total entropy for training data
-		double entropy = calc.totalEntropy(data,i);
-		
-		int indexWithHighestInfogain;
-		
-		//extracting the index with highest information gain to make our root node.
-		indexWithHighestInfogain = (int)calc.infoGain(data,32561,attributes,entropy,0);
-		
-		//creating root node 
-		Node node = new Node(data,attributes,indexWithHighestInfogain,attName);
-		
-		//creating child nodes of root node
-		for( i=0;i<attributes[indexWithHighestInfogain].length;i++)
-		{			
-			node.createChildNode(i);			
-		}
-		
-		//creating string array to store predicted outputs of decision tree
-		String[] output = new String[16281];
 		
 		
-		//testing decision tree and filling output array with predicted results ( "adult.test.txt" has 16281 instances)
-		for(int rows=0;rows<16281;rows++)
-		{
-			
-			output[rows] = calc.test(node, test[rows], attributes);
-			if(output[rows].equals("yes"))
+		int forestNo = 30;     //number of decision trees in a forest
+		int forestData = 1707; //number of instances each decision tree contains
+		int forest=0;
+		//2D array to store the output of the various trees
+		String[][] output = new String[forestNo][16281]; //16281 is the number of instances given in the testing data
+		
+		//starting random forest
+		long startTime = System.currentTimeMillis();	
+		
+		for(forest = 0;forest<forestNo;forest++)
+		{	
+			//code to generate random number of row indexes 
+
+			Random rng = new Random(); 
+			Set<Integer> generated = new LinkedHashSet<Integer>();
+			while (generated.size() < forestData)
 			{
-				output[rows] = "1";
-				//System.out.println("Answer of "+ rows+1 + "is: >50K");
+			    Integer next = rng.nextInt(32561) ;
+			    // As we're adding to a set, this will automatically do a containment check
+			    generated.add(next);
+			}
+			
+			//2D array "dataF" contains number of rows equal to "forestData"
+			String[][] dataF = new String[forestData][]; 
+			int row=0;
+			for(int p: generated)
+			{
+				dataF[row] = data[p];
+				row++;
+			}
+			
+			//calculating total entropy for training data
+			double entropy = calc.totalEntropy(dataF,forestData);
+			
+					
+			int indexWithHighestInfogain;
+			
+			//extracting the index with highest information gain to make our root node.
+			indexWithHighestInfogain = (int)calc.infoGain(dataF,forestData,attributes,entropy,0);
+			//double maxInfoGain = calc.infoGain(dataF,forestData,attributes,entropy,1);
+			
+			//creating root node
+			Node node = new Node(dataF,attributes,indexWithHighestInfogain,attName);
+			
+			//creating child nodes of root node
+			for( i=0;i<attributes[indexWithHighestInfogain].length;i++)
+			{
+				node.createChildNode(i);
+			}	
+			
+			
+			//testing decision tree and filling output array with predicted results ( "adult.test.txt" has 16281 instances)
+			for(int rows=0;rows<16281;rows++)
+			{				
+				output[forest][rows] = calc.test(node, test[rows], attributes);
+				if(output[forest][rows].equals("yes"))
+				{
+					output[forest][rows] = "1";
+				}
+				else
+				{
+					output[forest][rows] = "0";
+				}
+				
+			}
+		}
+			
+		//1D array for storing the majority result from "output[][]"
+		String[] finalOut = new String[16281];
+		int zero;
+		int one;
+		for(int ans=0;ans<16281;ans++)
+		{
+			zero=0;one=0;
+			for(int h=0;h<forestNo;h++)
+			{
+				if(output[h][ans].equals("0"))
+				{
+					zero++;
+				}
+				else if(output[h][ans].equals("1"))
+				{
+					one++;
+				}
+			}
+			if(zero>=one)
+			{
+				finalOut[ans] = "0";
 			}
 			else
 			{
-				output[rows] = "0";
-				//System.out.println("Answer of "+ rows+1 + "is: <=50K");
+				finalOut[ans] = "1";
 			}
-			
 		}
 		
 		long stopTime = System.currentTimeMillis();
-		
 		long elapsedTime = stopTime - startTime;
-		System.out.println("Time taken to construct ID3 decision tree(in milli-seconds): "+ elapsedTime);
-		//calculating accuracy and error of decision tree
+		log.info("Time taken to construct random forest(in milli-seconds): "+ elapsedTime);
 		
+		//calculating accuracy and error of random forest
 		int error = 0;
 		int accurate = 0;
-		
 		for(i=0;i<16281;i++)
 		{
-			if(Integer.parseInt(output[i])==Integer.parseInt(test[i][14]))
+			if(Integer.parseInt(finalOut[i])==Integer.parseInt(test[i][14]))
 			{
 				accurate++;
 			}
@@ -159,11 +204,11 @@ public class Main {
 		}
 		
 		double totalAccuracy = (double)accurate/16281;
-		System.out.println("Accuracy%: " + totalAccuracy*100);
+		log.info("Accuracy%: " + totalAccuracy*100);
 		double totalError = (double)error/16281;
-		System.out.println("Error%: " + totalError*100);
+		log.info("Error%: " + totalError*100);
 		
 		
-	}
 
+}
 }

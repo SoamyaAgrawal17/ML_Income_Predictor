@@ -1,11 +1,16 @@
-package randomForest;
+package algorithms;
 
-import java.util.*;
-import java.math.*;
-import java.io.*;
-import java.lang.*;
+import lombok.extern.slf4j.Slf4j;
 
-public class adaBoost {
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.LinkedHashSet;
+import java.util.Random;
+import java.util.Set;
+
+@Slf4j
+public class AdaBoost {
 	
 
 	public static void main(String[] args) throws Exception {
@@ -34,7 +39,7 @@ public class adaBoost {
 		//creating reader objects to extract training data and putting it into 2D array "data".
 		BufferedReader in = new BufferedReader(new FileReader("C:\\Users\\Ayushi\\Desktop\\ML\\MLassignment1\\adult.data.txt"));
 		String[][] data = new String[32561][15];
-		String line = new String();
+		String line;
 		int i=0;
 		while((line=in.readLine())!=null)
 		{
@@ -77,8 +82,8 @@ public class adaBoost {
 		continuous[4] = 11;
 		continuous[5] = 12;
 		
-		//creating object of "calculation" class.	
-		calculation calc = new calculation();
+		//creating object of "algorithms.Calculation" class.
+		Calculation calc = new Calculation();
 		
 		//converting all continuous valued attributes to discrete valued attributes in both "test" and "data"
 		data = calc.dealCont(data, continuous,test,16281);
@@ -93,7 +98,7 @@ public class adaBoost {
 		int forestData = 1707; //number of instances each decision tree contains
 		int forest=0;
 		
-		Node[] fnode = new Node[forestNo];  //array of nodes where each "node" corresponds to a decision tree
+		Node[] fNode = new Node[forestNo];  //array of nodes where each "node" corresponds to a decision tree
 		
 		//2D array to store the output of the various trees
 		String[][] output = new String[forestNo][16281];
@@ -107,7 +112,7 @@ public class adaBoost {
 		//array to store weights of instances in training data 
 		double[] weightData = new double[32561];
 		
-		int totalWeight=0;                               //to store the sum of weights of all the instances in training data
+		//int totalWeight=0;                               //to store the sum of weights of all the instances in training data
 		
 		double[] negWeight = new double[forestNo];       //to store the sum of weights corresponding to "training data instances" which are classified incorrectly using each tree of the forest
 		
@@ -128,8 +133,8 @@ public class adaBoost {
 			
 			//code to generate random number of row indexes 
 			int numbersNeeded = forestData;   
-			Random rng = new Random(); 
-			Set<Integer> generated = new LinkedHashSet<Integer>();
+			Random rng = new Random();
+			Set<Integer> generated = new LinkedHashSet<>();
 			while (generated.size() < numbersNeeded)
 			{
 			    Integer next = rng.nextInt(32561) ;
@@ -154,22 +159,22 @@ public class adaBoost {
 			
 			//extracting the index with highest information gain to make our root node.
 			indexWithHighestInfogain = (int)calc.infoGain(dataF,forestData,attributes,entropy,0);
-			double maxInfoGain = calc.infoGain(dataF,forestData,attributes,entropy,1);
+			//double maxInfoGain = calc.infoGain(dataF,forestData,attributes,entropy,1);
 			
 			//creating root node
-			fnode[forest] = new Node(dataF,attributes,indexWithHighestInfogain,attName);
+			fNode[forest] = new Node(dataF,attributes,indexWithHighestInfogain,attName);
 			
 			//creating child nodes of root node
 			for( i=0;i<attributes[indexWithHighestInfogain].length;i++)
 			{
-				fnode[forest].createChildNode(i);
+				fNode[forest].createChildNode(i);
 			}	
 			
-			//Ada-boosting (testing all our tree nodes on training data and calculation hits and misses on training data.
+			//Ada-boosting (testing all our tree nodes on training data and algorithms.Calculation hits and misses on training data.
 			String[] testOnTraining = new String[32561];
 			for(int rows=0;rows<32561;rows++)
 			{
-				testOnTraining[rows] = calc.test(fnode[forest], data[rows], attributes);
+				testOnTraining[rows] = calc.test(fNode[forest], data[rows], attributes);
 				if(testOnTraining[rows].equals("yes"))
 				{
 					testOnTraining[rows] = "1";
@@ -201,7 +206,7 @@ public class adaBoost {
 			//testing decision tree and filling output array with predicted results ( "adult.test.txt" has 16281 instances)
 			for(int rows=0;rows<16281;rows++)
 			{				
-				output[forest][rows] = calc.test(fnode[forest], test[rows], attributes);
+				output[forest][rows] = calc.test(fNode[forest], test[rows], attributes);
 				if(output[forest][rows].equals("yes"))
 				{
 					output[forest][rows] = "1";
@@ -216,7 +221,7 @@ public class adaBoost {
 		
 		//Ada-boosting : 
 		//temporary array to know whether a classifier is assigned weight or not. "usedForest[i]==1" means weight is already assigned to the 'i'th tree and,   "usedForest[i]==0" means weight is not yet assigned.
-		int usedForest[] = new int[forestNo];
+		int[] usedForest = new int[forestNo];
 		
 		//minimum negative weight of all the trees in the forest
 		double minWeight = negWeight[0];
@@ -249,7 +254,7 @@ public class adaBoost {
 				}
 			}
 			
-		    double em = (double)minWeight/(double)w;
+		    double em = minWeight/ w;
 		    double alpha = 0;
 		    alpha= 0.5*Math.log((1-em)/em);
 		    
@@ -265,13 +270,11 @@ public class adaBoost {
 			
 		//1D array for storing the majority result from "output[][]"
 		double[] finalOut = new double[16281];
-		int zero=0,one=0;
-		double outputNo[][] = new double[forestNo][16281];
+		double[][] outputNo = new double[forestNo][16281];
 		
 		//calculating final output of testing data using weights of trees calculated in Ada-boosting
 		for(int ans=0;ans<16281;ans++)
 		{
-			zero=0;one=0;
 			for(int h=0;h<forestNo;h++)
 			{
 				outputNo[h][ans] = Integer.parseInt(output[h][ans]);
@@ -290,7 +293,7 @@ public class adaBoost {
 		
 		long stopTime = System.currentTimeMillis();
 		long elapsedTime = stopTime - startTime;
-		System.out.println("Time taken for constructing random forest and Ada-boosting(in milli-seconds): "+ elapsedTime);
+		log.info("Time taken for constructing random forest and Ada-boosting(in milli-seconds): "+ elapsedTime);
 		
 		
 		//calculating accuracy and error of random forest
@@ -309,12 +312,8 @@ public class adaBoost {
 		}
 		
 		double totalAccuracy = (double)accurate/16281;
-		System.out.println("Accuracy%: " + totalAccuracy*100);
+		log.info("Accuracy%: " + totalAccuracy*100);
 		double totalError = (double)error/16281;
-		System.out.println("Error%: " + totalError*100);
-		
-		
-		
-
-}
+		log.info("Error%: " + totalError*100);
+	}
 }
